@@ -21,8 +21,8 @@
     {
       "binding": "DB",
       "database_name": "lyra-registry",
-      // Filled in by `wrangler d1 create`; local dev ignores it and uses a file under .wrangler.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      // From `wrangler d1 create`; local dev ignores it and uses a file under .wrangler.
+      "database_id": "2102437f-6012-41cc-b927-21b26218717e",
       "migrations_dir": "migrations"
     }
   ],
@@ -37,7 +37,7 @@
   "kv_namespaces": [
     {
       "binding": "CACHE",
-      "id": "0000000000000000000000000000000f"
+      "id": "46576a6dc9d94b2587ff42fdc2bbc4d7"
     }
   ],
 

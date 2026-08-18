@@ -1,5 +1,7 @@
 # Agent 市场
 
+**https://lyra-registry.gj7nrhnb9j.workers.dev**
+
 给 **Claude Code、Codex、Pi、Lyra** 装 skill、MCP 服务和插件。一个 Cloudflare Worker，管索引、构建、审核和分发。
 
 这不是某一个客户端专属的市场，而这一点是**格式决定的**，不是我们宣称的：`SKILL.md` 是 Claude Code 立下的约定，Codex、Pi、Lyra 都在读同一套；`.mcp.json` 描述的是 MCP 服务，而 MCP 是有很多客户端的协议。一个技能目录确实能装进上面每一个。真正不通用的只有插件清单——`.claude-plugin/` 和 `.lyra-plugin/` 各是一家的格式。
