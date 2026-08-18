@@ -51,7 +51,17 @@ async function call(path: string): Promise<{ ok: boolean; message?: string }> {
 		const body = (await response.json()) as { success?: boolean; errors?: { message?: string }[] };
 		return body.success ? { ok: true } : { ok: false, message: body.errors?.[0]?.message };
 	} catch (error) {
-		return { ok: false, message: error instanceof Error ? error.message : String(error) };
+		/*
+		 * `fetch failed` on its own says nothing.
+		 *
+		 * Node puts the reason — a DNS failure, a refused connection, a timeout — on `cause`, and
+		 * without it a network problem is indistinguishable from a rejected token, which is exactly
+		 * the distinction this script exists to make.
+		 */
+		const cause = error instanceof Error ? (error.cause as { code?: string; message?: string } | undefined) : undefined;
+		const detail = cause?.code ?? cause?.message;
+		const message = error instanceof Error ? error.message : String(error);
+		return { ok: false, message: detail ? `${message}（${detail}）` : message };
 	}
 }
 
@@ -93,8 +103,8 @@ if (missing.length === 0) {
 console.log("\n── 还缺这些权限 ──\n");
 console.log("Cloudflare Dashboard → 右上角头像 → My Profile → API Tokens");
 console.log("找到这个 token → Edit → 在 Permissions 里补上：\n");
-for (const check of [...new Set(missing.map((m) => m.permission))]) {
-	console.log(`  Account   ${check}`);
+for (const permission of new Set(missing.map((entry) => entry.permission))) {
+	console.log(`  Account   ${permission}`);
 }
 console.log("\n每一行都是 Account 级别（不是 User，也不是 Zone）。");
 
