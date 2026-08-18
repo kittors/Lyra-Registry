@@ -155,6 +155,7 @@ async function rebuild(
 		publisherId: entry.publisher_id ?? undefined,
 		status: entry.status as "approved",
 		readme: built.readme,
+		clients: built.clients,
 	});
 
 	await saveVersion(env.DB, entry.id, version, built, key);

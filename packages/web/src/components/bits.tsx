@@ -7,7 +7,7 @@
 
 import { useEffect, useState, type JSX } from "react";
 
-import type { BundleKind, EntryStatus } from "@lyra/registry-shared";
+import { CLIENT_LABEL, type BundleKind, type ClientId, type EntryStatus } from "@lyra/registry-shared";
 
 /** What each kind is called, in one place, because it is shown on five screens. */
 export const KIND_LABEL: Record<BundleKind, string> = {
@@ -22,6 +22,29 @@ export const STATUS_LABEL: Record<EntryStatus, string> = {
 	rejected: "已驳回",
 	delisted: "已下架",
 };
+
+/**
+ * Which agents can install this.
+ *
+ * Shown on every card, because "will this work with what I use" is the first question anybody has
+ * and the registry is not tied to one client. Derived at build time from the archive's contents —
+ * see `clientsFor` — so it is a fact rather than a claim.
+ */
+export function ClientBadges({ clients, max }: { clients?: ClientId[]; max?: number }): JSX.Element | null {
+	if (!clients?.length) return null;
+	const shown = max ? clients.slice(0, max) : clients;
+	const rest = clients.length - shown.length;
+	return (
+		<span className="clients">
+			{shown.map((client) => (
+				<span className="clients__one" key={client}>
+					{CLIENT_LABEL[client]}
+				</span>
+			))}
+			{rest > 0 && <span className="clients__one">+{rest}</span>}
+		</span>
+	);
+}
 
 export function KindBadge({ kind }: { kind: BundleKind }): JSX.Element {
 	return <span className={`badge badge--${kind}`}>{KIND_LABEL[kind]}</span>;

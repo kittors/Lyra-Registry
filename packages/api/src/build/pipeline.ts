@@ -12,7 +12,7 @@
  * be exercised against real repositories without a Workers runtime.
  */
 
-import type { BundleKind, RepoRef } from "@lyra/registry-shared";
+import type { BundleKind, ClientId, RepoRef } from "@lyra/registry-shared";
 import { tarballUrl } from "@lyra/registry-shared";
 
 import { BundleEmpty, BundleTooBig, bundleSize, commonRoot, extractBundle, MAX_BUNDLE_BYTES } from "./bundle.ts";
@@ -65,6 +65,8 @@ export interface BuiltBundle {
 	unpackedSize: number;
 	skillCount: number;
 	serverCount: number;
+	/** Which agents can install this. Derived; see `clientsFor`. */
+	clients: ClientId[];
 	manifest: Manifest;
 	readme?: string;
 	warnings: string[];
@@ -125,6 +127,7 @@ export async function build(input: BuildInput): Promise<BuiltBundle> {
 		unpackedSize: bundleSize(files),
 		skillCount: found.skillCount,
 		serverCount: found.serverCount,
+		clients: found.clients,
 		manifest: found.manifest,
 		readme,
 		warnings: found.warnings,

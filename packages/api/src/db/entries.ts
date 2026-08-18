@@ -93,7 +93,14 @@ export async function listEntries(
 	}
 
 	const clause = `WHERE ${where.join(" AND ")}`;
-	const order = SORT_SQL[options.sort ?? "downloads"] ?? SORT_SQL.downloads;
+	/*
+	 * Editorial weight leads every ordering.
+	 *
+	 * It is zero for everything nobody has touched, so this changes nothing until somebody
+	 * deliberately pins an entry — at which point it stays pinned regardless of which sort the
+	 * visitor picked, which is the only behaviour that makes pinning worth having.
+	 */
+	const order = `weight DESC, ${SORT_SQL[options.sort ?? "downloads"] ?? SORT_SQL.downloads}`;
 	const pageSize = Math.min(Math.max(1, options.pageSize ?? DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
 	const page = Math.max(0, options.page ?? 0);
 

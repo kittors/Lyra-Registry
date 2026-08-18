@@ -225,6 +225,7 @@ async function buildAndStore(env: Env, input: BuildAndStore): Promise<BuildResul
 			publisherId: input.publisherId,
 			status: input.status,
 			readme: built.readme,
+			clients: built.clients,
 		});
 		await saveVersion(env.DB, input.id, version, built, key);
 

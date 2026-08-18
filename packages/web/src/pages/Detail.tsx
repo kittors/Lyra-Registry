@@ -9,7 +9,7 @@
 
 import { useEffect, useState, type JSX } from "react";
 
-import type { EntryDetail } from "@lyra/registry-shared";
+import { CLIENT_LABEL, CLIENT_SKILL_PATH, type EntryDetail } from "@lyra/registry-shared";
 
 import { api } from "../api.ts";
 import { Markdown } from "../markdown.tsx";
@@ -97,7 +97,9 @@ export function Detail({ id }: { id: string }): JSX.Element {
 					<div className="side__block">
 						<h3>安装</h3>
 						<div className="install">
-							<p className="install__label">在 Lyra 的「市场」里搜索它，或者直接下载：</p>
+							<p className="install__label">
+								在支持的客户端里搜索它，或者直接下载解压到上面列出的目录：
+							</p>
 							<div className="install__cmd">
 								<a className="btn btn--primary btn--sm" href={`/v1/download/${encodeURIComponent(entry.id)}`}>
 									<Icon name="download" size={14} />
@@ -106,6 +108,23 @@ export function Detail({ id }: { id: string }): JSX.Element {
 							</div>
 						</div>
 					</div>
+
+					{entry.clients && entry.clients.length > 0 && (
+						<div className="side__block">
+							<h3>能装进哪些客户端</h3>
+							<p className="field__hint" style={{ marginBottom: 8 }}>
+								根据包里实际有什么判断出来的，不是作者声称的。
+							</p>
+							<dl className="side__rows">
+								{entry.clients.map((client) => (
+									<div className="side__row" key={client}>
+										<dt>{CLIENT_LABEL[client]}</dt>
+										<dd className="hash">{CLIENT_SKILL_PATH[client] ?? "按各自的 MCP 配置"}</dd>
+									</div>
+								))}
+							</dl>
+						</div>
+					)}
 
 					<div className="side__block">
 						<h3>这个包里有什么</h3>

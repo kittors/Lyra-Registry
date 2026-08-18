@@ -41,3 +41,15 @@ export {
 } from "./api.ts";
 
 export { normalisePath, ownerAvatar, parseRepo, tarballUrl, type RepoRef } from "./repo.ts";
+
+export {
+	CLIENTS,
+	CLIENT_LABEL,
+	CLIENT_SKILL_PATH,
+	clientsFor,
+	isClientId,
+	parseClients,
+	serialiseClients,
+	type ClientId,
+	type Evidence,
+} from "./clients.ts";

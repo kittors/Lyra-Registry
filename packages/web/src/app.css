@@ -384,3 +384,43 @@
 	align-items: center;
 	gap: 4px;
 }
+
+/* ── Client compatibility ───────────────────────────────────────────── */
+
+/*
+ * Deliberately quiet: small, grey, no colour of its own.
+ *
+ * It appears on every card, and if it competed with the name for attention the grid would read as
+ * a wall of labels. It is there to be scanned for a word you are looking for, not to be noticed.
+ */
+.clients {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.clients__one {
+	padding: 1px 6px;
+	border: 1px solid var(--line);
+	border-radius: 5px;
+	color: var(--ink-faint);
+	font-size: 11px;
+	line-height: 1.55;
+	white-space: nowrap;
+}
+
+.card__clients {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding-top: 2px;
+	color: var(--ink-faint);
+	font-size: 11.5px;
+}
+
+.chips__label {
+	align-self: center;
+	margin-right: 2px;
+	color: var(--ink-faint);
+	font-size: 13px;
+}

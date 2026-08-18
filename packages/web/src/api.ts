@@ -35,7 +35,13 @@ export class ApiFailure extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
 	const response = await fetch(path, {
 		...init,
-		headers: { accept: "application/json", ...(init?.body ? { "content-type": "application/json" } : {}), ...init?.headers },
+		headers: {
+			accept: "application/json",
+			// Only for bodies we serialised ourselves. A File carries its own type, and overriding it
+			// would make every icon upload arrive as JSON.
+			...(typeof init?.body === "string" ? { "content-type": "application/json" } : {}),
+			...init?.headers,
+		},
 		// The session is a cookie; without this it is not sent on a same-origin fetch either.
 		credentials: "same-origin",
 	});
@@ -99,6 +105,29 @@ export const api = {
 				method: "POST",
 				body: JSON.stringify({ action, note }),
 			}),
+		patch: (id: string, edits: Record<string, string | number | null>) =>
+			request<{ ok: true; curated: string[] }>(`/v1/admin/entries/${encodeURIComponent(id)}`, {
+				method: "PATCH",
+				body: JSON.stringify(edits),
+			}),
+
+		/*
+		 * Raw bytes with the file's own content type, not multipart.
+		 *
+		 * There is one file and no other fields, so multipart would be a format to encode and parse
+		 * for no benefit. `body: File` sends the bytes; the type header is set explicitly because
+		 * `fetch` would otherwise send whatever the browser guessed.
+		 */
+		uploadIcon: (id: string, file: File) =>
+			request<{ ok: true; key: string }>(`/v1/admin/entries/${encodeURIComponent(id)}/icon`, {
+				method: "PUT",
+				body: file,
+				headers: { "content-type": file.type },
+			}),
+
+		clearIcon: (id: string) =>
+			request<{ ok: true }>(`/v1/admin/entries/${encodeURIComponent(id)}/icon`, { method: "DELETE" }),
+
 		history: (id: string) =>
 			request<{ action: string; note: string | null; created_at: string; reviewer: string | null }[]>(
 				`/v1/admin/entries/${encodeURIComponent(id)}/reviews`,

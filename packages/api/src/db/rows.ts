@@ -9,7 +9,7 @@
  * Pure — no bindings, no D1 — so the mapping is testable under `node --test` without a database.
  */
 
-import type { BundleKind, EntryStatus, EntrySummary, VersionInfo } from "@lyra/registry-shared";
+import { parseClients, type BundleKind, type EntryStatus, type EntrySummary, type VersionInfo } from "@lyra/registry-shared";
 
 /** A row of `entries`, optionally joined with its publisher. */
 export interface EntryRow {
@@ -35,6 +35,13 @@ export interface EntryRow {
 	created_at: string;
 	updated_at: string;
 	published_at: string | null;
+	/** Comma-separated ClientIds, derived at build time. */
+	clients: string;
+	/** R2 key of an icon set by hand, which beats whatever `logo` holds. */
+	icon_key: string | null;
+	/** Comma-separated field names a maintainer has edited; a rebuild leaves these alone. */
+	curated: string;
+	weight: number;
 	/* Joined, so a catalogue row can show who published it without a second query. */
 	publisher_login?: string | null;
 	publisher_avatar?: string | null;
@@ -111,6 +118,7 @@ export function toSummary(row: EntryRow, urls: Urls): EntrySummary {
 		skillCount: row.skill_count ?? undefined,
 		serverCount: row.server_count ?? undefined,
 		commit: row.commit_sha ?? undefined,
+		clients: parseClients(row.clients),
 	};
 }
 

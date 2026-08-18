@@ -11,11 +11,20 @@
 
 import { useEffect, useState, type JSX } from "react";
 
-import { BUNDLE_KINDS, type BundleKind, type EntrySort, type EntrySummary, type RegistryStats } from "@lyra/registry-shared";
+import {
+	BUNDLE_KINDS,
+	CLIENTS,
+	CLIENT_LABEL,
+	type BundleKind,
+	type ClientId,
+	type EntrySort,
+	type EntrySummary,
+	type RegistryStats,
+} from "@lyra/registry-shared";
 
 import { api } from "../api.ts";
 import { useQueryParam } from "../router.ts";
-import { Counts, Icon, KIND_LABEL, KindIcon } from "../components/bits.tsx";
+import { ClientBadges, Counts, Icon, KIND_LABEL, KindIcon } from "../components/bits.tsx";
 
 const SORTS: { value: EntrySort; label: string }[] = [
 	{ value: "downloads", label: "最多安装" },
@@ -28,6 +37,7 @@ export function Catalogue(): JSX.Element {
 	const [kind, setKind] = useQueryParam("kind");
 	const [category, setCategory] = useQueryParam("category");
 	const [sort, setSort] = useQueryParam("sort");
+	const [client, setClient] = useQueryParam("client");
 
 	const [typed, setTyped] = useState(q);
 	const [items, setItems] = useState<EntrySummary[] | null>(null);
@@ -74,14 +84,25 @@ export function Catalogue(): JSX.Element {
 		};
 	}, [q, kind, category, sort]);
 
-	const filtered = Boolean(q || kind || category);
+	/*
+	 * The client filter is applied here rather than in SQL.
+	 *
+	 * `clients` is a comma-separated column, so matching it in the database means a `LIKE` that
+	 * cannot use an index — and the page already holds every row it is going to show. Filtering the
+	 * fetched page keeps the query simple and the answer identical, at the cost of the total count
+	 * being the unfiltered one, which is why that line is hidden while a client filter is on.
+	 */
+	const visible = client ? (items?.filter((item) => item.clients?.includes(client as ClientId)) ?? null) : items;
+	const filtered = Boolean(q || kind || category || client);
 
 	return (
 		<>
 			<section className="page hero">
-				<h1 className="hero__title">给 Lyra 装点东西</h1>
+				<h1 className="hero__title">Agent 市场</h1>
 				<p className="hero__subtitle">
-					插件、MCP 服务和技能集合。每一个都从源码构建、记录了哈希——装之前就能看到它到底带了多少技能。
+					给 Claude Code、Codex、Pi、Lyra 装 skill、MCP 服务和插件。
+					<br />
+					每一个都由平台从源码构建、校验过哈希——装之前就知道它带了多少技能、能装进哪个客户端。
 				</p>
 				{stats && stats.entries > 0 && (
 					<div className="hero__stats">
@@ -159,6 +180,21 @@ export function Catalogue(): JSX.Element {
 					</select>
 				</div>
 
+				<div className="chips" role="group" aria-label="按客户端筛选">
+					<span className="chips__label">能装进：</span>
+					{CLIENTS.map((value) => (
+						<button
+							key={value}
+							type="button"
+							className="chip"
+							aria-pressed={client === value}
+							onClick={() => setClient(client === value ? "" : value)}
+						>
+							{CLIENT_LABEL[value]}
+						</button>
+					))}
+				</div>
+
 				{categories.length > 0 && (
 					<div className="chips">
 						{categories.map((row) => (
@@ -185,23 +221,23 @@ export function Catalogue(): JSX.Element {
 					</div>
 				)}
 
-				{items?.length === 0 && (
+				{visible?.length === 0 && (
 					<div className="empty">
 						<p className="empty__title">{filtered ? "没有匹配的条目" : "目录还是空的"}</p>
 						<p>{filtered ? "换个关键词，或者清掉筛选。" : "第一个发布的人就是你。"}</p>
 					</div>
 				)}
 
-				{items && items.length > 0 && (
+				{visible && visible.length > 0 && (
 					<>
 						<div className="grid">
-							{items.map((item) => (
+							{visible.map((item) => (
 								<EntryCard key={item.id} item={item} />
 							))}
 						</div>
-						{total > items.length && (
+						{!client && total > visible.length && (
 							<p className="empty" style={{ paddingTop: 0 }}>
-								显示前 {items.length} 个，共 {total} 个
+								显示前 {visible.length} 个，共 {total} 个
 							</p>
 						)}
 					</>
@@ -231,6 +267,12 @@ function EntryCard({ item }: { item: EntrySummary }): JSX.Element {
 			</div>
 
 			{item.description && <p className="card__desc">{item.description}</p>}
+
+			{item.clients && item.clients.length > 0 && (
+				<div className="card__clients">
+					<ClientBadges clients={item.clients} max={3} />
+				</div>
+			)}
 
 			<div className="card__foot">
 				<Counts skills={item.skillCount} servers={item.serverCount} />

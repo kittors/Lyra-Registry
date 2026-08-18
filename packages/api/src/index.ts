@@ -17,6 +17,7 @@ import { errorResponse, PUBLIC_CORS } from "./lib/http.ts";
 import { admin } from "./routes/admin.ts";
 import { auth } from "./routes/auth.ts";
 import { catalogue } from "./routes/catalogue.ts";
+import { curate } from "./routes/curate.ts";
 import { download } from "./routes/download.ts";
 import { icon } from "./routes/icon.ts";
 import { publish } from "./routes/publish.ts";
@@ -35,6 +36,7 @@ app.route("/v1", download);
 app.route("/v1", icon);
 app.route("/v1", publish);
 app.route("/v1/admin", admin);
+app.route("/v1/admin", curate);
 app.route("/auth", auth);
 app.route("/v1", auth);
 

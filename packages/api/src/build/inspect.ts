@@ -17,7 +17,7 @@
  * tarball, and every question has to be asked of that list.
  */
 
-import type { BundleKind } from "@lyra/registry-shared";
+import { clientsFor, type BundleKind, type ClientId } from "@lyra/registry-shared";
 
 import type { TarEntry } from "./tar.ts";
 
@@ -58,6 +58,14 @@ export interface Inspection {
 	 * bundle; an inferred one is a guess made from a directory listing.
 	 */
 	hasManifest: boolean;
+	/**
+	 * Which agents can install this, read off the archive rather than claimed.
+	 *
+	 * `SKILL.md` is portable across every agent that reads it; a plugin manifest is one product's
+	 * format. Deriving this is the same decision as deriving `kind` and has the same justification:
+	 * a submission form would let somebody tick every box.
+	 */
+	clients: ClientId[];
 	/** Raw markdown, for the detail page. The first README found at the root of the bundle. */
 	readme?: string;
 	/** Things worth telling the author that are not reasons to refuse the build. */
@@ -113,7 +121,22 @@ export function inspect(entries: TarEntry[], declared?: BundleKind): Inspection 
 		warnings.push(`索引声明为 ${declared}，实际内容是 ${kind}，已按实际内容归类`);
 	}
 
-	return { kind, skillCount, serverCount, manifest, hasManifest: declared_ !== null, readme: readReadme(files), warnings };
+	return {
+		kind,
+		skillCount,
+		serverCount,
+		manifest,
+		hasManifest: declared_ !== null,
+		clients: clientsFor(kind, {
+			skills: skillCount > 0,
+			mcp: serverCount > 0,
+			claudePlugin: hasPrefix(entries, ".claude-plugin/"),
+			lyraPlugin: hasPrefix(entries, ".lyra-plugin/"),
+			codexPlugin: hasPrefix(entries, ".codex-plugin/"),
+		}),
+		readme: readReadme(files),
+		warnings,
+	};
 }
 
 /** A skill collection: a directory of `<name>/SKILL.md` and nothing else required. */
@@ -130,6 +153,8 @@ function inspectCollection(entries: TarEntry[], files: Map<string, Uint8Array>, 
 		serverCount: 0,
 		manifest: manifest ?? {},
 		hasManifest: manifest !== null,
+		// A collection is nothing but `SKILL.md` directories, which is the portable case.
+		clients: clientsFor("skill", { skills: true, mcp: false, claudePlugin: false, lyraPlugin: false, codexPlugin: false }),
 		readme: readReadme(files),
 		warnings,
 	};
@@ -274,6 +299,11 @@ function trimFile(relative: string): string | null {
 function firstString(...values: unknown[]): string | undefined {
 	for (const value of values) if (typeof value === "string" && value.trim()) return value.trim();
 	return undefined;
+}
+
+/** Whether any member sits under this directory. */
+function hasPrefix(entries: TarEntry[], prefix: string): boolean {
+	return entries.some((entry) => entry.path.startsWith(prefix));
 }
 
 function decode(data: Uint8Array): string {

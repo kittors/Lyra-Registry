@@ -14,6 +14,7 @@ import { api } from "./api.ts";
 import { Header } from "./components/Header.tsx";
 import { Catalogue } from "./pages/Catalogue.tsx";
 import { Detail } from "./pages/Detail.tsx";
+import { Console } from "./pages/Console.tsx";
 import { Admin, Mine } from "./pages/Manage.tsx";
 import { Submit } from "./pages/Submit.tsx";
 import { navigate, useLinkInterception, useRoute } from "./router.ts";
@@ -59,7 +60,14 @@ export function App(): JSX.Element {
 				{path === "/submit" && <Submit viewer={viewer} />}
 				{path === "/mine" && <Mine viewer={viewer} />}
 				{path === "/admin" && <Admin viewer={viewer} />}
-				{!isKnown(path) && (
+				{path === "/console" && <Console viewer={viewer} />}
+				{/*
+				 * A non-admin on an admin path gets the 404, not a "no permission" page.
+				 *
+				 * Telling somebody they lack permission confirms the page exists and is worth coming
+				 * back for. The API refuses them regardless; this is about not advertising.
+				 */}
+				{(!isKnown(path) || (isAdminPath(path) && !viewer?.isAdmin)) && (
 					<div className="page detail">
 						<div className="empty">
 							<p className="empty__title">没有这个页面</p>
@@ -75,14 +83,14 @@ export function App(): JSX.Element {
 
 			<footer className="footer">
 				<div className="page footer__inner">
-					<span>Lyra 市场</span>
+					<span>Agent 市场</span>
 					<a href="https://github.com/kittors/Lyra-Registry" target="_blank" rel="noreferrer noopener">
 						平台源码
 					</a>
 					<a href="https://github.com/kittors/Lyra" target="_blank" rel="noreferrer noopener">
 						Lyra
 					</a>
-					<span style={{ marginLeft: "auto" }}>每个条目都从源码构建，并记录哈希</span>
+					<span style={{ marginLeft: "auto" }}>支持 Claude Code · Codex · Pi · Lyra · 任何 MCP 客户端</span>
 				</div>
 			</footer>
 		</div>
@@ -90,5 +98,15 @@ export function App(): JSX.Element {
 }
 
 function isKnown(path: string): boolean {
-	return path === "/" || path === "/submit" || path === "/mine" || path === "/admin" || path.startsWith("/e/");
+	return (
+		path === "/" ||
+		path === "/submit" ||
+		path === "/mine" ||
+		isAdminPath(path) ||
+		path.startsWith("/e/")
+	);
+}
+
+function isAdminPath(path: string): boolean {
+	return path === "/admin" || path === "/console";
 }

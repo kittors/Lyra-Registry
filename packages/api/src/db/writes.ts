@@ -6,7 +6,7 @@
  * in a `batch`, which D1 runs as one transaction.
  */
 
-import type { BundleKind, EntryStatus, RegistryStats } from "@lyra/registry-shared";
+import { serialiseClients, type BundleKind, type ClientId, type EntryStatus, type RegistryStats } from "@lyra/registry-shared";
 
 import type { BuiltBundle } from "../build/pipeline.ts";
 import { now, today } from "./rows.ts";
@@ -52,7 +52,18 @@ export interface EntryInput {
 	publisherId?: number;
 	status: EntryStatus;
 	readme?: string;
+	clients: ClientId[];
 }
+
+/**
+ * Fields a maintainer may set by hand, and which a rebuild must then leave alone.
+ *
+ * The list is closed on purpose. Everything outside it is a fact about the archive — how many
+ * skills, what kind, which clients — and a fact is not something to override; if it is wrong, the
+ * bundle is wrong.
+ */
+export const CURATABLE = ["name", "description", "category", "logo", "brandColor", "weight"] as const;
+export type CuratableField = (typeof CURATABLE)[number];
 
 /**
  * Create or update the listing itself, leaving versions alone.
@@ -62,26 +73,42 @@ export interface EntryInput {
  * first appeared is not the day it was last edited.
  */
 export async function upsertEntry(db: D1Database, input: EntryInput): Promise<void> {
+	/*
+	 * A rebuild refreshes what it derived and leaves what a person chose.
+	 *
+	 * `curated` records which columns were set by hand. Without consulting it, a nightly refresh
+	 * either always overwrites — silently undoing every edit the moment upstream pushes a commit —
+	 * or never does, which freezes an entry at whatever its first build said. Neither is a rule
+	 * anybody can hold in their head; "derived refreshes, edited does not" is.
+	 *
+	 * The comparison wraps both sides in commas so it matches a whole field name. Plain `instr`
+	 * would make a curated `brandColor` also protect `name` as soon as any two field names shared
+	 * a substring — which the current six do not, and which the seventh would.
+	 */
 	await db
 		.prepare(
 			`INSERT INTO entries (
 				id, kind, name, description, category, repository, subpath, homepage, author,
-				logo, brand_color, license, package, publisher_id, status, readme, created_at, updated_at
-			 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				logo, brand_color, license, package, publisher_id, status, readme, clients, created_at, updated_at
+			 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			 ON CONFLICT (id) DO UPDATE SET
 			   kind = excluded.kind,
-			   name = excluded.name,
-			   description = excluded.description,
-			   category = excluded.category,
+			   name = CASE WHEN instr(',' || entries.curated || ',', ',name,') > 0 THEN entries.name ELSE excluded.name END,
+			   description = CASE WHEN instr(',' || entries.curated || ',', ',description,') > 0
+			                      THEN entries.description ELSE excluded.description END,
+			   category = CASE WHEN instr(',' || entries.curated || ',', ',category,') > 0
+			                   THEN entries.category ELSE excluded.category END,
 			   repository = excluded.repository,
 			   subpath = excluded.subpath,
 			   homepage = excluded.homepage,
 			   author = excluded.author,
-			   logo = excluded.logo,
-			   brand_color = excluded.brand_color,
+			   logo = CASE WHEN instr(',' || entries.curated || ',', ',logo,') > 0 THEN entries.logo ELSE excluded.logo END,
+			   brand_color = CASE WHEN instr(',' || entries.curated || ',', ',brandColor,') > 0
+			                      THEN entries.brand_color ELSE excluded.brand_color END,
 			   license = excluded.license,
 			   package = excluded.package,
 			   readme = excluded.readme,
+			   clients = excluded.clients,
 			   updated_at = excluded.updated_at`,
 		)
 		.bind(
@@ -101,6 +128,7 @@ export async function upsertEntry(db: D1Database, input: EntryInput): Promise<vo
 			input.publisherId ?? null,
 			input.status,
 			input.readme ?? null,
+			serialiseClients(input.clients),
 			now(),
 			now(),
 		)
@@ -201,6 +229,72 @@ export async function recordDownload(db: D1Database, entryId: string): Promise<v
 			)
 			.bind(entryId, today()),
 	]);
+}
+
+/**
+ * A maintainer's edit.
+ *
+ * Only the fields in `CURATABLE`, and each one edited is added to `curated` so that no later
+ * rebuild undoes it. Passing an empty string clears a field *and* releases it back to the derived
+ * value, which is the only way to change your mind about an override.
+ */
+export async function curateEntry(
+	db: D1Database,
+	id: string,
+	edits: Partial<Record<CuratableField, string | number | null>>,
+): Promise<void> {
+	const columns: Record<CuratableField, string> = {
+		name: "name",
+		description: "description",
+		category: "category",
+		logo: "logo",
+		brandColor: "brand_color",
+		weight: "weight",
+	};
+
+	const sets: string[] = [];
+	const params: unknown[] = [];
+	const claimed: CuratableField[] = [];
+	const released: CuratableField[] = [];
+
+	for (const field of CURATABLE) {
+		const value = edits[field];
+		if (value === undefined) continue;
+		// An empty value means "stop overriding this", not "override it with nothing".
+		const cleared = value === null || value === "";
+		sets.push(`${columns[field]} = ?`);
+		params.push(cleared ? (field === "weight" ? 0 : null) : value);
+		(cleared ? released : claimed).push(field);
+	}
+
+	if (sets.length === 0) return;
+
+	/*
+	 * `curated` is rebuilt from the row's current value in SQL rather than read and written back,
+	 * so two edits arriving at once cannot lose one another's claim.
+	 */
+	const existing = await db.prepare("SELECT curated FROM entries WHERE id = ?").bind(id).first<{ curated: string }>();
+	const set = new Set((existing?.curated ?? "").split(",").filter(Boolean));
+	for (const field of claimed) set.add(field);
+	for (const field of released) set.delete(field);
+
+	sets.push("curated = ?", "updated_at = ?");
+	params.push([...set].join(","), now(), id);
+
+	await db.prepare(`UPDATE entries SET ${sets.join(", ")} WHERE id = ?`).bind(...params).run();
+}
+
+/** Point an entry at an icon uploaded to R2, and record that its picture is now a human's choice. */
+export async function setIconKey(db: D1Database, id: string, key: string | null): Promise<void> {
+	const existing = await db.prepare("SELECT curated FROM entries WHERE id = ?").bind(id).first<{ curated: string }>();
+	const set = new Set((existing?.curated ?? "").split(",").filter(Boolean));
+	if (key) set.add("logo");
+	else set.delete("logo");
+
+	await db
+		.prepare("UPDATE entries SET icon_key = ?, curated = ?, updated_at = ? WHERE id = ?")
+		.bind(key, [...set].join(","), now(), id)
+		.run();
 }
 
 /** Mark a version withdrawn without deleting it. See `VersionInfo.yanked`. */

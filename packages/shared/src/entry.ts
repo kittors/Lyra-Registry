@@ -12,6 +12,8 @@
  * not a replacement format.
  */
 
+import { isClientId, type ClientId } from "./clients.ts";
+
 /**
  * The three things a registry can offer, distinguished by where they land and what starts them.
  *
@@ -93,6 +95,13 @@ export interface RegistryEntry {
 	serverCount?: number;
 	/** The upstream commit this version was built from, so a build can be reproduced. */
 	commit?: string;
+	/**
+	 * Which agents can install this, derived from the archive's contents.
+	 *
+	 * Absent on a plain file-based index, which has no way to know — the field only means something
+	 * when something has read the bundle.
+	 */
+	clients?: ClientId[];
 }
 
 /**
@@ -155,6 +164,7 @@ export function normalise(item: unknown): RegistryEntry | null {
 		skillCount: positive(raw.skillCount ?? raw.skill_count),
 		serverCount: positive(raw.serverCount ?? raw.server_count),
 		commit: pick(raw, "commit", "sha", "commitSha"),
+		clients: Array.isArray(raw.clients) ? raw.clients.filter(isClientId) : undefined,
 	};
 }
 

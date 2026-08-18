@@ -15,7 +15,10 @@
 import { Hono } from "hono";
 
 import type { Env } from "../env.ts";
-import { CACHE_IMMUTABLE, PUBLIC_CORS } from "../lib/http.ts";
+import { PUBLIC_CORS } from "../lib/http.ts";
+
+/** How long a cached icon stays good. See the note where it is used. */
+const CACHE_ICON = "public, max-age=86400, stale-while-revalidate=604800";
 
 export const icon = new Hono<{ Bindings: Env }>();
 
@@ -58,14 +61,47 @@ icon.get("/icon/:id", async (context) => {
 			headers: {
 				...PUBLIC_CORS,
 				"content-type": cached.httpMetadata?.contentType ?? "image/png",
-				"cache-control": CACHE_IMMUTABLE,
+				/*
+				 * A day, not a year.
+				 *
+				 * This URL is stable while its contents are not: an upstream avatar changes, and a
+				 * maintainer can upload a replacement at any moment. `immutable` here meant a
+				 * replaced icon would keep showing the old picture in every cache that had seen it
+				 * — for a year — which is the whole feature not working.
+				 */
+				"cache-control": CACHE_ICON,
 			},
 		});
 	}
 
-	const row = await context.env.DB.prepare("SELECT logo FROM entries WHERE id = ?")
+	const row = await context.env.DB.prepare("SELECT logo, icon_key FROM entries WHERE id = ?")
 		.bind(id)
-		.first<{ logo: string | null }>();
+		.first<{ logo: string | null; icon_key: string | null }>();
+
+	/*
+	 * An icon uploaded through the console wins.
+	 *
+	 * The derived default is the repository owner's GitHub avatar, which is a fine placeholder and
+	 * a poor answer: eight bundles living in one repository all come back wearing the same picture.
+	 *
+	 * The upload path deletes the derived object (see the icon PUT), which is what lets this be
+	 * reached at all — the cache above is checked first, and would otherwise keep answering with
+	 * the avatar forever.
+	 */
+	if (row?.icon_key) {
+		const uploaded = await context.env.BUCKET.get(row.icon_key);
+		if (uploaded) {
+			return new Response(uploaded.body, {
+				headers: {
+					...PUBLIC_CORS,
+					"content-type": uploaded.httpMetadata?.contentType ?? "image/png",
+					// Shorter than the derived one: a maintainer who replaces an icon should see it
+					// replaced today, not in a year.
+					"cache-control": "public, max-age=300",
+				},
+			});
+		}
+	}
 
 	const source = row?.logo;
 	// Only https, and only something we put in the row ourselves. The logo can come from a
@@ -96,7 +132,7 @@ icon.get("/icon/:id", async (context) => {
 		);
 
 		return new Response(bytes as unknown as BodyInit, {
-			headers: { ...PUBLIC_CORS, "content-type": type, "cache-control": CACHE_IMMUTABLE },
+			headers: { ...PUBLIC_CORS, "content-type": type, "cache-control": CACHE_ICON },
 		});
 	} catch {
 		// Upstream unreachable. A placeholder now is better than a broken image forever, and the

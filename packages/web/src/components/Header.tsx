@@ -29,7 +29,7 @@ export function Header({
 			<div className="page header__inner">
 				<a className="brand" href="/">
 					<Logo />
-					Lyra 市场
+					Agent 市场
 				</a>
 
 				<nav className="nav">
@@ -41,11 +41,17 @@ export function Header({
 							我的
 						</a>
 					)}
+					{/* Only rendered for an admin: a link nobody else can use is a link nobody else sees. */}
 					{viewer?.isAdmin && (
-						<a className="nav__link" href="/admin" aria-current={route === "/admin" ? "page" : undefined}>
-							审核
-							{pendingCount > 0 && <span className="nav__badge">{pendingCount}</span>}
-						</a>
+						<>
+							<a className="nav__link" href="/admin" aria-current={route === "/admin" ? "page" : undefined}>
+								审核
+								{pendingCount > 0 && <span className="nav__badge">{pendingCount}</span>}
+							</a>
+							<a className="nav__link" href="/console" aria-current={route === "/console" ? "page" : undefined}>
+								维护
+							</a>
+						</>
 					)}
 				</nav>
 
