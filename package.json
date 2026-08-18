@@ -1,0 +1,35 @@
+{
+  "name": "lyra-registry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The registry behind Lyra: plugins, MCP servers and skill collections, indexed, built and served from the edge",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=11"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "dev": "pnpm --filter @lyra/registry-api dev",
+    "dev:web": "pnpm --filter @lyra/registry-web dev",
+    "build": "pnpm --filter @lyra/registry-web build",
+    "deploy": "pnpm build && pnpm --filter @lyra/registry-api deploy",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "oxlint --deny-warnings",
+    "lint:fix": "oxlint --fix",
+    "test": "pnpm -r --no-bail test",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "db:migrate:local": "pnpm --filter @lyra/registry-api db:migrate:local",
+    "db:migrate": "pnpm --filter @lyra/registry-api db:migrate"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.4",
+    "oxlint": "^1.78.0",
+    "typescript": "5.9.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kittors/Lyra-Registry.git"
+  }
+}

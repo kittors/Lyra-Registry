@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<title>Lyra 市场 · 插件、MCP 服务与技能</title>
+		<meta name="description" content="Lyra 的插件、MCP 服务与技能集合目录。每一个都从源码构建、校验过哈希，装之前就能看到它到底有多少技能。" />
+		<meta name="color-scheme" content="light dark" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<script>
+			/*
+			 * The theme is applied before the first paint.
+			 *
+			 * Doing it in React means one frame of the wrong colours on every load — a white flash on
+			 * a dark screen, which is the single most noticeable way a site can feel unfinished.
+			 */
+			(() => {
+				const saved = localStorage.getItem("lyra-theme");
+				const theme = saved === "light" || saved === "dark" ? saved : null;
+				if (theme) document.documentElement.dataset.theme = theme;
+			})();
+		</script>
+	</head>
+	<body>
+		<div id="root"></div>
+		<script type="module" src="/src/main.tsx"></script>
+	</body>
+</html>

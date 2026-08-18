@@ -1,0 +1,25 @@
+{
+  "name": "@lyra/registry-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Lyra registry: a Cloudflare Worker serving the catalogue, the build pipeline and the site",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "db:migrate:local": "wrangler d1 migrations apply lyra-registry --local",
+    "db:migrate": "wrangler d1 migrations apply lyra-registry --remote"
+  },
+  "dependencies": {
+    "@lyra/registry-shared": "workspace:*",
+    "hono": "4.13.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260818.1",
+    "typescript": "5.9.3",
+    "wrangler": "4.123.0"
+  }
+}

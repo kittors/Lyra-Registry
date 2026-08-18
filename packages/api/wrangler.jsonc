@@ -1,0 +1,61 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lyra-registry",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  // `nodejs_compat` is for `node:crypto`'s createHash only — everything else here is Web Crypto.
+  "compatibility_flags": ["nodejs_compat"],
+
+  // The site and the API are one Worker. Two reasons: the token this account has cannot create
+  // Pages projects, and same-origin means the site never needs a CORS preflight to call its own API.
+  // `single-page-application` sends unmatched paths to index.html so client routing works on reload;
+  // API paths never reach the asset handler because `run_worker_first` claims them.
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/v1/*", "/auth/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lyra-registry",
+      // Filled in by `wrangler d1 create`; local dev ignores it and uses a file under .wrangler.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "lyra-registry"
+    }
+  ],
+
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "0000000000000000000000000000000f"
+    }
+  ],
+
+  "vars": {
+    // Public, and needed by the browser to start the OAuth dance. The secret half is a secret.
+    "GITHUB_CLIENT_ID": "",
+    // Which GitHub logins may review submissions. Comma-separated; empty means nobody, which is
+    // safer than defaulting to the first person who logs in.
+    "ADMIN_LOGINS": "kittors",
+    "PUBLIC_URL": "https://lyra-registry.gj7nrhnb9j.workers.dev"
+  },
+
+  // Refresh upstream versions once a day, the same cadence the old GitHub Action ran at.
+  "triggers": {
+    "crons": ["17 3 * * *"]
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

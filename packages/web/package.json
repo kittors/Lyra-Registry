@@ -1,0 +1,26 @@
+{
+  "name": "@lyra/registry-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The registry's public site and its moderation console",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --experimental-strip-types test/*.test.ts"
+  },
+  "dependencies": {
+    "@lyra/registry-shared": "workspace:*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "6.0.5",
+    "typescript": "5.9.3",
+    "vite": "8.2.1"
+  }
+}

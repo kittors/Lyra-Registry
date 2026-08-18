@@ -1,0 +1,490 @@
+/*
+ * The detail page, the forms, and the states shared by every screen.
+ *
+ * Split from `app.css` on where things appear rather than what they are: the catalogue is one
+ * screen and this is the rest. Both read the same variables.
+ */
+
+/* ── Badges ─────────────────────────────────────────────────────────── */
+
+.badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 2px 8px;
+	border-radius: var(--radius-pill);
+	background: var(--surface-sunken);
+	color: var(--ink-muted);
+	font-size: 12px;
+	font-weight: 550;
+	white-space: nowrap;
+}
+
+.badge--plugin {
+	background: var(--accent-wash);
+	color: var(--accent);
+}
+
+.badge--mcp {
+	background: color-mix(in srgb, var(--violet) 14%, transparent);
+	color: var(--violet);
+}
+
+.badge--skill {
+	background: var(--ok-wash);
+	color: var(--ok);
+}
+
+.badge--pending {
+	background: var(--warn-wash);
+	color: var(--warn);
+}
+
+.badge--rejected,
+.badge--delisted {
+	background: var(--danger-wash);
+	color: var(--danger);
+}
+
+.badge--approved {
+	background: var(--ok-wash);
+	color: var(--ok);
+}
+
+/* ── Detail ─────────────────────────────────────────────────────────── */
+
+.detail {
+	padding: 32px 0 64px;
+}
+
+.detail__back {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	margin-bottom: 22px;
+	color: var(--ink-muted);
+	font-size: 13.5px;
+	transition: color var(--t-quick) var(--ease);
+}
+
+.detail__back:hover {
+	color: var(--ink);
+}
+
+.detail__head {
+	display: flex;
+	align-items: flex-start;
+	gap: 18px;
+	padding-bottom: 26px;
+	border-bottom: 1px solid var(--line-soft);
+}
+
+.detail__logo {
+	width: 60px;
+	height: 60px;
+	flex: none;
+	border-radius: 13px;
+	border: 1px solid var(--line-soft);
+	background: var(--surface-sunken);
+	object-fit: cover;
+}
+
+.detail__title {
+	margin: 0 0 6px;
+	font-size: 25px;
+	font-weight: 640;
+	letter-spacing: -0.022em;
+	line-height: 1.25;
+}
+
+.detail__desc {
+	margin: 0;
+	color: var(--ink-muted);
+	font-size: 15px;
+	line-height: 1.6;
+}
+
+.detail__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-top: 11px;
+}
+
+.detail__body {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 268px;
+	gap: 40px;
+	padding-top: 28px;
+	align-items: start;
+}
+
+@media (max-width: 880px) {
+	.detail__body {
+		grid-template-columns: 1fr;
+		gap: 28px;
+	}
+}
+
+.side {
+	position: sticky;
+	top: 78px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.side__block h3 {
+	margin: 0 0 9px;
+	color: var(--ink-faint);
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: 0.055em;
+	text-transform: uppercase;
+}
+
+.side__rows {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	font-size: 13.5px;
+}
+
+.side__row {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.side__row dt {
+	color: var(--ink-faint);
+}
+
+.side__row dd {
+	margin: 0;
+	text-align: right;
+	overflow-wrap: anywhere;
+}
+
+.hash {
+	font-family: var(--font-mono);
+	font-size: 11.5px;
+	color: var(--ink-faint);
+}
+
+/* ── Install block ──────────────────────────────────────────────────── */
+
+.install {
+	padding: 13px 15px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	background: var(--surface-sunken);
+}
+
+.install__label {
+	margin: 0 0 7px;
+	color: var(--ink-faint);
+	font-size: 12px;
+}
+
+.install__cmd {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	font-family: var(--font-mono);
+	font-size: 12.5px;
+	overflow-x: auto;
+	white-space: nowrap;
+}
+
+/* ── Readme ─────────────────────────────────────────────────────────── */
+
+.readme {
+	font-size: 14.5px;
+	line-height: 1.75;
+	overflow-wrap: break-word;
+}
+
+.readme h1,
+.readme h2,
+.readme h3 {
+	margin: 1.7em 0 0.6em;
+	font-weight: 620;
+	letter-spacing: -0.015em;
+	line-height: 1.3;
+}
+
+.readme h1 { font-size: 21px; }
+.readme h2 { font-size: 18px; }
+.readme h3 { font-size: 16px; }
+.readme > :first-child { margin-top: 0; }
+
+.readme p,
+.readme ul,
+.readme ol {
+	margin: 0 0 1em;
+}
+
+.readme ul,
+.readme ol {
+	padding-left: 1.4em;
+}
+
+.readme li {
+	margin-bottom: 0.3em;
+}
+
+.readme a {
+	color: var(--accent);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.readme code {
+	padding: 1.5px 5px;
+	border-radius: 5px;
+	background: var(--surface-sunken);
+	font-family: var(--font-mono);
+	font-size: 0.88em;
+}
+
+.readme pre {
+	margin: 0 0 1em;
+	padding: 13px 15px;
+	border: 1px solid var(--line-soft);
+	border-radius: var(--radius-sm);
+	background: var(--surface-sunken);
+	overflow-x: auto;
+}
+
+.readme pre code {
+	padding: 0;
+	background: none;
+	font-size: 12.5px;
+	line-height: 1.6;
+}
+
+.readme blockquote {
+	margin: 0 0 1em;
+	padding-left: 14px;
+	border-left: 3px solid var(--line);
+	color: var(--ink-muted);
+}
+
+.readme img {
+	max-width: 100%;
+	border-radius: var(--radius-sm);
+}
+
+.readme table {
+	width: 100%;
+	margin-bottom: 1em;
+	border-collapse: collapse;
+	font-size: 13.5px;
+}
+
+.readme th,
+.readme td {
+	padding: 7px 10px;
+	border: 1px solid var(--line-soft);
+	text-align: left;
+}
+
+.readme th {
+	background: var(--surface-sunken);
+	font-weight: 600;
+}
+
+/* ── Forms ──────────────────────────────────────────────────────────── */
+
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	max-width: 600px;
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.field__label {
+	font-size: 13.5px;
+	font-weight: 550;
+}
+
+.field__hint {
+	color: var(--ink-faint);
+	font-size: 12.5px;
+	line-height: 1.55;
+}
+
+.field__input,
+.field__select {
+	padding: 9px 12px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius-sm);
+	background: var(--surface);
+	color: var(--ink);
+	font: inherit;
+	font-size: 14px;
+	transition: border-color var(--t-quick) var(--ease), box-shadow var(--t-quick) var(--ease);
+}
+
+.field__input:focus,
+.field__select:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* ── Notices ────────────────────────────────────────────────────────── */
+
+.notice {
+	padding: 12px 15px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius-sm);
+	font-size: 13.5px;
+	line-height: 1.6;
+}
+
+.notice--error {
+	border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+	background: var(--danger-wash);
+	color: var(--danger);
+}
+
+.notice--ok {
+	border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+	background: var(--ok-wash);
+	color: var(--ok);
+}
+
+.notice--warn {
+	border-color: color-mix(in srgb, var(--warn) 30%, transparent);
+	background: var(--warn-wash);
+	color: var(--warn);
+}
+
+/* ── Empty, loading, skeleton ───────────────────────────────────────── */
+
+.empty {
+	padding: 64px 24px;
+	text-align: center;
+	color: var(--ink-faint);
+}
+
+.empty__title {
+	margin: 0 0 6px;
+	color: var(--ink-muted);
+	font-size: 15px;
+	font-weight: 550;
+}
+
+/*
+ * A skeleton, not a spinner.
+ *
+ * The catalogue's shape is known before its contents are, so the page can be laid out immediately
+ * and filled in — which avoids the reflow a spinner causes when it is replaced by a grid.
+ */
+.skeleton {
+	border-radius: var(--radius);
+	background: linear-gradient(90deg, var(--surface-sunken) 25%, var(--surface-hover) 50%, var(--surface-sunken) 75%);
+	background-size: 200% 100%;
+	animation: shimmer 1.4s linear infinite;
+}
+
+.skeleton--card {
+	height: 148px;
+}
+
+@keyframes shimmer {
+	to {
+		background-position: -200% 0;
+	}
+}
+
+/* ── Table (moderation) ─────────────────────────────────────────────── */
+
+.rows {
+	display: flex;
+	flex-direction: column;
+	gap: 9px;
+	padding-bottom: 48px;
+}
+
+.row {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 13px 16px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	background: var(--surface);
+}
+
+.row__main {
+	flex: 1;
+	min-width: 0;
+}
+
+.row__title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14.5px;
+	font-weight: 570;
+}
+
+.row__sub {
+	margin-top: 2px;
+	color: var(--ink-faint);
+	font-size: 12.5px;
+	overflow-wrap: anywhere;
+}
+
+.row__actions {
+	display: flex;
+	gap: 7px;
+	flex: none;
+}
+
+@media (max-width: 640px) {
+	.row {
+		flex-wrap: wrap;
+	}
+
+	.row__actions {
+		width: 100%;
+	}
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+
+.footer {
+	margin-top: auto;
+	padding: 28px 0;
+	border-top: 1px solid var(--line-soft);
+	color: var(--ink-faint);
+	font-size: 13px;
+}
+
+.footer__inner {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 20px;
+	align-items: center;
+}
+
+.footer a:hover {
+	color: var(--ink);
+}
+
+.shell {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+}
