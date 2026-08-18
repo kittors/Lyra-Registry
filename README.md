@@ -77,7 +77,13 @@ LYRA_REPO=../../Lyra GH_TOKEN=$(gh auth token) node --experimental-strip-types s
 
 ## 部署
 
-需要 Cloudflare 的 D1、R2、Workers 权限。
+先确认 token 够用：
+
+```bash
+CLOUDFLARE_API_TOKEN=… pnpm check:cf
+```
+
+它逐个探测要用到的资源，缺哪个就告诉你去补哪一条权限。全绿之后：
 
 ```bash
 npx wrangler d1 create lyra-registry          # 把返回的 database_id 填进 wrangler.jsonc
@@ -91,6 +97,21 @@ npx wrangler secret put GITHUB_TOKEN
 pnpm db:migrate
 pnpm deploy
 ```
+
+### token 需要哪些权限
+
+在 Dashboard → 右上角头像 → **My Profile → API Tokens** 里编辑（或新建）token，**Account 级别**勾这四条：
+
+| 权限 | 用来做什么 |
+| --- | --- |
+| `Workers Scripts : Edit` | 部署 Worker 本身，以及站点这批静态资源 |
+| `D1 : Edit` | 建库、跑迁移、读写目录 |
+| `Workers R2 Storage : Edit` | 存包和图标 |
+| `Workers KV Storage : Edit` | 边缘缓存 |
+
+都是 **Account** 那一栏，不是 User，也不是 Zone——这是最容易勾错的地方。
+
+**R2 还要先开通一次**：Dashboard → R2 → Overview，按提示绑定支付方式。免费额度是 10GB 存储加每月一百万次读，这个平台的用量远在额度里，但不开通的话账号上就没有 R2 这个产品，权限勾了也没用。
 
 `wrangler.jsonc` 里的 `GITHUB_CLIENT_ID`、`ADMIN_LOGINS`、`PUBLIC_URL` 是公开配置，直接改。`ADMIN_LOGINS` 空着表示**没有人**是管理员——这比默认让第一个登录的人当管理员安全。
 

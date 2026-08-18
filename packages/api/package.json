@@ -11,7 +11,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "test": "node --test --experimental-strip-types test/*.test.ts",
     "db:migrate:local": "wrangler d1 migrations apply lyra-registry --local",
-    "db:migrate": "wrangler d1 migrations apply lyra-registry --remote"
+    "db:migrate": "wrangler d1 migrations apply lyra-registry --remote",
+    "check:cf": "node --experimental-strip-types scripts/check-cloudflare.ts"
   },
   "dependencies": {
     "@lyra/registry-shared": "workspace:*",

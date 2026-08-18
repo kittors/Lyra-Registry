@@ -20,7 +20,8 @@
     "test": "pnpm -r --no-bail test",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "db:migrate:local": "pnpm --filter @lyra/registry-api db:migrate:local",
-    "db:migrate": "pnpm --filter @lyra/registry-api db:migrate"
+    "db:migrate": "pnpm --filter @lyra/registry-api db:migrate",
+    "check:cf": "pnpm --filter @lyra/registry-api check:cf"
   },
   "devDependencies": {
     "@types/node": "24.12.4",
