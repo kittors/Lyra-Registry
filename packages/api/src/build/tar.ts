@@ -81,9 +81,14 @@ export function readTar(buffer: Uint8Array): TarEntry[] {
  *
  * Everything that could vary between two builds of the same commit is pinned: mtime is zero, uid
  * and gid are zero, the owner names are empty, and the caller is expected to have sorted the
- * entries. That is what makes the SHA-256 of the result mean "these bytes" rather than "these
- * bytes, built at this second" — a hash that changes on every rebuild cannot be used to tell a
- * cached copy from a tampered one.
+ * entries. Two builds of one commit therefore produce byte-identical tar — measured across two
+ * runtimes, where the same entry gave `0b62b719e245…` from both Node and workerd.
+ *
+ * That determinism stops at this layer. `CompressionStream("gzip")` is not specified to produce
+ * identical output for identical input, and does not: the same tar gzipped by Node and by workerd
+ * came to the same 943 bytes and different hashes. So the archive's SHA-256 identifies *that build*
+ * — which is what a client checks a download against, and is enough for that — while "is this the
+ * same content" is a question about the tar inside it.
  */
 export function writeTar(entries: TarEntry[]): Uint8Array {
 	const chunks: Uint8Array[] = [];

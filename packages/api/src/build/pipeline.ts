@@ -261,6 +261,13 @@ async function readCapped(stream: ReadableStream<Uint8Array>, limit: number, mes
 	return concat(chunks);
 }
 
+/**
+ * The hash a client checks its download against.
+ *
+ * Of the compressed bytes, because those are the bytes that travel. It identifies this build rather
+ * than this content: gzip output is runtime-dependent (see `writeTar`), so rebuilding the same
+ * commit elsewhere produces a different value here and the same tar underneath.
+ */
 export async function sha256(data: Uint8Array): Promise<string> {
 	const digest = await crypto.subtle.digest("SHA-256", data as BufferSource);
 	return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
