@@ -61,6 +61,12 @@ export interface EntryDetail extends EntrySummary {
 	versions: VersionInfo[];
 	/** The README the build found in the bundle, as raw markdown. Rendered by the client. */
 	readme?: string;
+	/**
+	 * Directory the README's relative links resolve against, relative to the repository root.
+	 *
+	 * `""` means the repository root, which is where a bundle with no README of its own gets one.
+	 */
+	readmeBase?: string;
 	/** Present only for the entry's own publisher or an admin. */
 	reviewNote?: string;
 }

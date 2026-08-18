@@ -58,6 +58,7 @@ catalogue.get("/entries/:id", async (context) => {
 		{
 			...summary,
 			readme: found.row.readme ?? undefined,
+			readmeBase: found.row.readme_base,
 			versions: found.versions.map((version) => toVersion(version, urlsFor(context.env, context.req.raw).tarball(id, version.version))),
 		},
 		CACHE_CATALOGUE,

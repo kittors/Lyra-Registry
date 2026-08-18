@@ -135,16 +135,17 @@ async function rebuild(
 		id: entry.id,
 		kind: built.kind,
 		/*
-		 * The stored label wins over the manifest's.
+		 * The derived values, every time.
 		 *
-		 * A refresh must not rename something under its publisher because upstream edited a JSON
-		 * field. What a refresh updates is the archive; what it leaves alone is everything a person
-		 * chose. `description` and `category` follow the same rule, falling back to the manifest
-		 * only where nothing was ever set.
+		 * What a person chose is protected by `curated` inside `upsertEntry`, which is the only place
+		 * that distinction belongs. Passing the stored values here instead would mean a field that
+		 * was *released* from curation still came back as its old value, because the old value would
+		 * be arriving as the new one.
 		 */
-		name: entry.name,
-		description: entry.description ?? built.manifest.interface?.shortDescription ?? built.manifest.description,
-		category: entry.category ?? built.manifest.interface?.category,
+		// Same order as a manual rebuild: derived first, then whatever is stored, never the bare id.
+		name: built.manifest.interface?.displayName ?? built.manifest.name ?? entry.name,
+		description: built.manifest.interface?.shortDescription ?? built.manifest.description,
+		category: built.manifest.interface?.category,
 		repository: repo.url,
 		subpath: entry.subpath,
 		homepage: built.manifest.homepage || built.manifest.interface?.websiteURL || repo.homepage,
@@ -155,6 +156,7 @@ async function rebuild(
 		publisherId: entry.publisher_id ?? undefined,
 		status: entry.status as "approved",
 		readme: built.readme,
+		readmeBase: built.readmeBase,
 		clients: built.clients,
 	});
 

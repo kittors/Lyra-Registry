@@ -29,7 +29,8 @@ export function Header({
 			<div className="page header__inner">
 				<a className="brand" href="/">
 					<Logo />
-					Agent 市场
+					{/* Hidden on a narrow screen; the mark alone still gets you home. */}
+					<span className="brand__text">Agent 市场</span>
 				</a>
 
 				<nav className="nav">

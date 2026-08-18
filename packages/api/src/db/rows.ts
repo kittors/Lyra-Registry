@@ -31,6 +31,7 @@ export interface EntryRow {
 	latest_version: string | null;
 	downloads: number;
 	readme: string | null;
+	readme_base: string;
 	review_note: string | null;
 	created_at: string;
 	updated_at: string;

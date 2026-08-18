@@ -52,6 +52,7 @@ export interface EntryInput {
 	publisherId?: number;
 	status: EntryStatus;
 	readme?: string;
+	readmeBase: string;
 	clients: ClientId[];
 }
 
@@ -64,6 +65,22 @@ export interface EntryInput {
  */
 export const CURATABLE = ["name", "description", "category", "logo", "brandColor", "weight"] as const;
 export type CuratableField = (typeof CURATABLE)[number];
+
+/**
+ * Whether clearing a field can write NULL into its column.
+ *
+ * `name` and `weight` are NOT NULL, so clearing them means only "stop overriding this" — the value
+ * stays until the next build supplies a derived one. Writing NULL raised a constraint error that
+ * surfaced as a 500 on a perfectly reasonable action: empty the name in the console and save.
+ */
+const NULLABLE: Record<CuratableField, boolean> = {
+	name: false,
+	description: true,
+	category: true,
+	logo: true,
+	brandColor: true,
+	weight: false,
+};
 
 /**
  * Create or update the listing itself, leaving versions alone.
@@ -89,8 +106,8 @@ export async function upsertEntry(db: D1Database, input: EntryInput): Promise<vo
 		.prepare(
 			`INSERT INTO entries (
 				id, kind, name, description, category, repository, subpath, homepage, author,
-				logo, brand_color, license, package, publisher_id, status, readme, clients, created_at, updated_at
-			 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				logo, brand_color, license, package, publisher_id, status, readme, readme_base, clients, created_at, updated_at
+			 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			 ON CONFLICT (id) DO UPDATE SET
 			   kind = excluded.kind,
 			   name = CASE WHEN instr(',' || entries.curated || ',', ',name,') > 0 THEN entries.name ELSE excluded.name END,
@@ -108,6 +125,7 @@ export async function upsertEntry(db: D1Database, input: EntryInput): Promise<vo
 			   license = excluded.license,
 			   package = excluded.package,
 			   readme = excluded.readme,
+			   readme_base = excluded.readme_base,
 			   clients = excluded.clients,
 			   updated_at = excluded.updated_at`,
 		)
@@ -128,6 +146,7 @@ export async function upsertEntry(db: D1Database, input: EntryInput): Promise<vo
 			input.publisherId ?? null,
 			input.status,
 			input.readme ?? null,
+			input.readmeBase,
 			serialiseClients(input.clients),
 			now(),
 			now(),
@@ -260,14 +279,36 @@ export async function curateEntry(
 	for (const field of CURATABLE) {
 		const value = edits[field];
 		if (value === undefined) continue;
-		// An empty value means "stop overriding this", not "override it with nothing".
-		const cleared = value === null || value === "";
-		sets.push(`${columns[field]} = ?`);
-		params.push(cleared ? (field === "weight" ? 0 : null) : value);
+
+		/*
+		 * An empty value means "stop overriding this", not "override it with nothing".
+		 *
+		 * Zero counts as empty for `weight` because zero *is* the absence of a weight — an entry
+		 * pinned to 0 and an entry never pinned sort identically, so recording the first as a
+		 * curated choice would protect a decision nobody made.
+		 */
+		const cleared = value === null || value === "" || (field === "weight" && value === 0);
 		(cleared ? released : claimed).push(field);
+
+		if (cleared && !NULLABLE[field]) {
+			/*
+			 * Nothing to write. The column cannot hold NULL, so releasing it means leaving the current
+			 * value in place and letting the next rebuild replace it with whatever the bundle says.
+			 * `weight` is the exception among the non-nullable ones: zero *is* its neutral value.
+			 */
+			if (field === "weight") {
+				sets.push(`${columns[field]} = ?`);
+				params.push(0);
+			}
+			continue;
+		}
+
+		sets.push(`${columns[field]} = ?`);
+		params.push(cleared ? null : value);
 	}
 
-	if (sets.length === 0) return;
+	// Releasing a non-nullable field changes no column but still has to record the release.
+	if (sets.length === 0 && released.length === 0) return;
 
 	/*
 	 * `curated` is rebuilt from the row's current value in SQL rather than read and written back,

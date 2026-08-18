@@ -136,11 +136,18 @@ publish.post("/entries/:id/refresh", async (context) => {
 			ref: DEFAULT_REF,
 			publisherId: found.row.publisher_id ?? viewer.id,
 			status: found.row.status as "pending" | "approved" | "rejected" | "delisted",
-			overrides: {
-				name: found.row.name,
-				description: found.row.description ?? undefined,
-				category: found.row.category ?? undefined,
-			},
+			/*
+			 * No overrides on a rebuild.
+			 *
+			 * Passing the row's current values back in looks like "keep what is there" and is not:
+			 * `upsertEntry` already consults `curated` to decide which columns a rebuild may touch,
+			 * so this layer only served to feed the *current* value in as if it were the derived one.
+			 * The effect was that releasing a curated field never took hold — the console cleared the
+			 * name, the rebuild helpfully supplied the cleared name back, and it looked like the
+			 * release had done nothing.
+			 */
+			overrides: {},
+			fallbackName: found.row.name,
 		}),
 		NO_STORE,
 	);
@@ -159,6 +166,7 @@ publish.get("/entries/:id/mine", async (context) => {
 		{
 			...summary,
 			readme: found.row.readme ?? undefined,
+			readmeBase: found.row.readme_base,
 			reviewNote: found.row.review_note ?? undefined,
 			versions: found.versions.map((v) => toVersion(v, urlsFor(context.env, context.req.raw).tarball(id, v.version))),
 		},
@@ -175,6 +183,14 @@ interface BuildAndStore {
 	publisherId: number;
 	status: "pending" | "approved" | "rejected" | "delisted";
 	overrides: { name?: string; description?: string; category?: string };
+	/**
+	 * The name to keep when the bundle supplies none.
+	 *
+	 * A skill collection has no manifest by definition, so releasing a curated name leaves nothing
+	 * to fall back to and the entry was renamed to its id — "Waza" became "waza". This is the last
+	 * resort before that, and only the last resort: a manifest's own name still wins over it.
+	 */
+	fallbackName?: string;
 }
 
 /**
@@ -208,8 +224,14 @@ async function buildAndStore(env: Env, input: BuildAndStore): Promise<BuildResul
 		await upsertEntry(env.DB, {
 			id: input.id,
 			kind: built.kind,
-			// The submitter's label wins over the manifest's, and the manifest's over the directory.
-			name: input.overrides.name || built.manifest.interface?.displayName || built.manifest.name || input.id,
+			// The submitter's label wins over the manifest's, the manifest's over what is already
+			// stored, and that over the bare id.
+			name:
+				input.overrides.name ||
+				built.manifest.interface?.displayName ||
+				built.manifest.name ||
+				input.fallbackName ||
+				input.id,
 			description:
 				input.overrides.description || built.manifest.interface?.shortDescription || built.manifest.description,
 			category: input.overrides.category || built.manifest.interface?.category,
@@ -225,6 +247,7 @@ async function buildAndStore(env: Env, input: BuildAndStore): Promise<BuildResul
 			publisherId: input.publisherId,
 			status: input.status,
 			readme: built.readme,
+			readmeBase: built.readmeBase,
 			clients: built.clients,
 		});
 		await saveVersion(env.DB, input.id, version, built, key);

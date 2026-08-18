@@ -122,7 +122,15 @@
 
 @media (max-width: 880px) {
 	.detail__body {
-		grid-template-columns: 1fr;
+		/*
+		 * `minmax(0, 1fr)`, not `1fr`.
+		 *
+		 * A grid item defaults to `min-width: auto`, which means it refuses to be narrower than its
+		 * content's minimum — so one wide code block in a README pushed the column to 890px inside a
+		 * 375px viewport and the whole page scrolled sideways. The wide layout above already guards
+		 * against this; dropping the guard here is what broke it.
+		 */
+		grid-template-columns: minmax(0, 1fr);
 		gap: 28px;
 	}
 }
@@ -487,4 +495,105 @@
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
+}
+
+/* ── Narrow screens ─────────────────────────────────────────────────── */
+
+/*
+ * Measured, not guessed: at 375px the header's five children plus their gaps wanted 482px, so the
+ * page scrolled sideways by 107px and the four nav labels wrapped into single stacked characters.
+ * What follows takes that back — 70px from the wordmark, ~48px from the gaps, the rest from
+ * padding — rather than hiding the overflow and leaving the layout broken underneath.
+ */
+@media (max-width: 600px) {
+	:root {
+		--gutter: 14px;
+	}
+
+	.header__inner {
+		gap: 6px;
+		height: 54px;
+	}
+
+	.brand__text {
+		display: none;
+	}
+
+	.nav {
+		gap: 0;
+	}
+
+	.nav__link {
+		padding: 6px 7px;
+		font-size: 13px;
+		/* Two characters each; letting them wrap is what produced the stacked-glyph column. */
+		white-space: nowrap;
+	}
+
+	.wide-only {
+		display: none;
+	}
+
+	.hero {
+		padding: 34px 0 24px;
+	}
+
+	.hero__subtitle {
+		font-size: 15px;
+	}
+
+	.hero__stats {
+		gap: 6px 16px;
+		margin-top: 18px;
+	}
+
+	.filters {
+		gap: 8px;
+	}
+
+	.grid {
+		gap: 10px;
+	}
+
+	.detail__head {
+		gap: 12px;
+	}
+
+	.detail__logo {
+		width: 44px;
+		height: 44px;
+	}
+
+	.detail__title {
+		font-size: 21px;
+	}
+
+	/* The sidebar's sticky offset assumes the taller desktop header. */
+	.side {
+		position: static;
+	}
+}
+
+/*
+ * A README's table can be wider than the column it sits in. Scrolling it beats reflowing the page
+ * around it, and beats truncating cells the author expected to be readable.
+ */
+.readme .table-scroll,
+.readme table {
+	display: block;
+	max-width: 100%;
+	overflow-x: auto;
+}
+
+/*
+ * Badges sit in a row and are small. Without this they inherit the paragraph's line height and
+ * stack with uneven gaps, which is worse than the raw markdown they replaced.
+ */
+.readme p > a > img,
+.readme p > img {
+	display: inline-block;
+	vertical-align: middle;
+	margin: 2px 3px 2px 0;
+	max-height: 22px;
+	width: auto;
 }

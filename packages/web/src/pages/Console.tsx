@@ -130,6 +130,7 @@ function EntryEditor({
 	const [name, setName] = useState(item.name);
 	const [description, setDescription] = useState(item.description ?? "");
 	const [category, setCategory] = useState(item.category ?? "");
+	const [brandColor, setBrandColor] = useState(item.brandColor ?? "");
 	const [weight, setWeight] = useState(String(0));
 	const [busy, setBusy] = useState(false);
 	const [note, setNote] = useState<string | null>(null);
@@ -146,6 +147,7 @@ function EntryEditor({
 				name,
 				description,
 				category,
+				brandColor,
 				weight: Number(weight) || 0,
 			});
 			onDone();
@@ -245,8 +247,8 @@ function EntryEditor({
 				/>
 			</div>
 
-			<div style={{ display: "flex", gap: 12 }}>
-				<div className="field" style={{ flex: 1 }}>
+			<div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+				<div className="field" style={{ flex: "1 1 180px" }}>
 					<label className="field__label" htmlFor={`cat-${item.id}`}>
 						分类
 					</label>
@@ -256,6 +258,33 @@ function EntryEditor({
 						value={category}
 						onChange={(event) => setCategory(event.target.value)}
 					/>
+				</div>
+				<div className="field" style={{ width: 160 }}>
+					<label className="field__label" htmlFor={`color-${item.id}`}>
+						品牌色
+					</label>
+					<div style={{ display: "flex", gap: 6 }}>
+						<input
+							id={`color-${item.id}`}
+							className="field__input"
+							style={{ flex: 1, minWidth: 0 }}
+							value={brandColor}
+							placeholder="#8b5cf6"
+							onChange={(event) => setBrandColor(event.target.value)}
+						/>
+						{/* A swatch, not a colour picker: the value may legitimately be empty or invalid
+						    while being typed, and a picker cannot represent either. */}
+						<span
+							aria-hidden="true"
+							style={{
+								width: 34,
+								flex: "none",
+								borderRadius: 8,
+								border: "1px solid var(--line)",
+								background: /^#[0-9a-f]{3,8}$/i.test(brandColor) ? brandColor : "var(--surface-sunken)",
+							}}
+						/>
+					</div>
 				</div>
 				<div className="field" style={{ width: 130 }}>
 					<label className="field__label" htmlFor={`weight-${item.id}`}>

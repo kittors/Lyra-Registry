@@ -69,6 +69,14 @@ export interface BuiltBundle {
 	clients: ClientId[];
 	manifest: Manifest;
 	readme?: string;
+	/**
+	 * Directory the README's relative links resolve against, relative to the repository root.
+	 *
+	 * The bundle's own sub-path when the README came from inside it, and `""` when it came from the
+	 * repository root. Only the build can tell these apart, and the site cannot render a working
+	 * link without knowing.
+	 */
+	readmeBase: string;
 	warnings: string[];
 	/** The commit this was built from, read off the archive rather than asked for separately. */
 	commit: string;
@@ -111,10 +119,12 @@ export async function build(input: BuildInput): Promise<BuiltBundle> {
 	 * definition — which is also why its repository is the collection, so its root README does
 	 * describe it, and `tw93/Waza` is correctly served by falling back.
 	 */
-	const readme =
-		found.readme ??
-		found.manifest.interface?.longDescription ??
-		(found.hasManifest ? undefined : rootReadme(members));
+	const fromBundle = found.readme;
+	const fromManifest = found.manifest.interface?.longDescription;
+	const fromRoot = fromBundle || fromManifest || found.hasManifest ? undefined : rootReadme(members);
+	const readme = fromBundle ?? fromManifest ?? fromRoot;
+	// Only a README taken from inside the bundle resolves against the bundle's own directory.
+	const readmeBase = fromBundle ? input.subpath : "";
 
 	const archive = await gzip(writeTar(files));
 	if (archive.length > MAX_BUNDLE_BYTES) throw new BuildFailed("打包后仍然超过 20MB");
@@ -130,6 +140,7 @@ export async function build(input: BuildInput): Promise<BuiltBundle> {
 		clients: found.clients,
 		manifest: found.manifest,
 		readme,
+		readmeBase,
 		warnings: found.warnings,
 		commit,
 	};

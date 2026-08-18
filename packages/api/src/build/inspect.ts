@@ -143,7 +143,27 @@ export function inspect(entries: TarEntry[], declared?: BundleKind): Inspection 
 function inspectCollection(entries: TarEntry[], files: Map<string, Uint8Array>, warnings: string[]): Inspection {
 	const skillCount = countSkills(entries, "");
 	if (skillCount === 0) {
-		throw new UnusableBundle("这个目录里没有技能（应当是一层含 SKILL.md 的子目录）");
+		const better = richerSubdirectory(entries, 0);
+		throw new UnusableBundle(
+			better
+				? `这一层没有技能，但 ${better.dir}/ 下面有 ${better.count} 个——子路径大概要填 ${better.dir}`
+				: "这个目录里没有技能（应当是一层含 SKILL.md 的子目录）",
+		);
+	}
+
+	/*
+	 * Point out a sub-directory that holds more.
+	 *
+	 * Submitting `anthropics/skills` with no path builds one skill: the repository root holds a
+	 * single `template/SKILL.md`, while the nineteen real ones live under `skills/`. The count is
+	 * correct and the entry is useless, and nothing in the result says why — the author sees "1 个
+	 * 技能" and has no reason to suspect a missing field.
+	 *
+	 * The platform has already read the whole archive, so it can simply say where the rest are.
+	 */
+	const better = richerSubdirectory(entries, skillCount);
+	if (better) {
+		warnings.push(`这一层只有 ${skillCount} 个技能，而 ${better.dir}/ 下面有 ${better.count} 个——子路径可能该填 ${better.dir}`);
 	}
 	// A collection has no manifest and needs none — its name comes from the submission.
 	const manifest = readManifest(files);
@@ -176,6 +196,28 @@ function countSkills(entries: TarEntry[], dir: string): number {
 		if (rest.length === 2 && rest[1] === "SKILL.md") found.add(rest[0]!);
 	}
 	return found.size;
+}
+
+/**
+ * The immediate sub-directory holding more skills than the level being inspected, if any.
+ *
+ * Only one level down, and only when it is a clear improvement: suggesting a path that yields the
+ * same number would be noise, and searching arbitrarily deep would start proposing paths for
+ * repositories that simply keep examples around.
+ */
+function richerSubdirectory(entries: TarEntry[], current: number): { dir: string; count: number } | null {
+	const tops = new Set<string>();
+	for (const entry of entries) {
+		const top = entry.path.split("/")[0];
+		if (top && entry.path.includes("/")) tops.add(top);
+	}
+
+	let best: { dir: string; count: number } | null = null;
+	for (const dir of tops) {
+		const count = countSkills(entries, dir);
+		if (count > current && count > (best?.count ?? 0)) best = { dir, count };
+	}
+	return best;
 }
 
 /** How many servers a `.mcp.json` declares. A file that is not one costs a warning, not the build. */

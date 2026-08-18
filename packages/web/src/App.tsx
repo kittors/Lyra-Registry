@@ -24,7 +24,14 @@ export function App(): JSX.Element {
 	const route = useRoute();
 	const path = route.split("?")[0] ?? "/";
 
-	const [viewer, setViewer] = useState<Viewer | null>(null);
+	/*
+	 * Three states, not two.
+	 *
+	 * `undefined` means "we have not asked yet", `null` means "asked, nobody is signed in". Merging
+	 * them makes an admin loading `/admin` see the 404 for one paint before `/v1/me` answers — a
+	 * flash of "no such page" on a page they own.
+	 */
+	const [viewer, setViewer] = useState<Viewer | null | undefined>(undefined);
 	const [pending, setPending] = useState(0);
 
 	useEffect(() => {
@@ -52,34 +59,9 @@ export function App(): JSX.Element {
 
 	return (
 		<div className="shell">
-			<Header viewer={viewer} pendingCount={pending} onSignOut={signOut} />
+			<Header viewer={viewer ?? null} pendingCount={pending} onSignOut={signOut} />
 
-			<main style={{ flex: 1 }}>
-				{path === "/" && <Catalogue />}
-				{path.startsWith("/e/") && <Detail id={decodeURIComponent(path.slice(3))} />}
-				{path === "/submit" && <Submit viewer={viewer} />}
-				{path === "/mine" && <Mine viewer={viewer} />}
-				{path === "/admin" && <Admin viewer={viewer} />}
-				{path === "/console" && <Console viewer={viewer} />}
-				{/*
-				 * A non-admin on an admin path gets the 404, not a "no permission" page.
-				 *
-				 * Telling somebody they lack permission confirms the page exists and is worth coming
-				 * back for. The API refuses them regardless; this is about not advertising.
-				 */}
-				{(!isKnown(path) || (isAdminPath(path) && !viewer?.isAdmin)) && (
-					<div className="page detail">
-						<div className="empty">
-							<p className="empty__title">没有这个页面</p>
-							<p>
-								<a href="/" style={{ color: "var(--accent)" }}>
-									回到目录
-								</a>
-							</p>
-						</div>
-					</div>
-				)}
-			</main>
+			<main style={{ flex: 1 }}>{screen(path, viewer)}</main>
 
 			<footer className="footer">
 				<div className="page footer__inner">
@@ -97,16 +79,48 @@ export function App(): JSX.Element {
 	);
 }
 
-function isKnown(path: string): boolean {
-	return (
-		path === "/" ||
-		path === "/submit" ||
-		path === "/mine" ||
-		isAdminPath(path) ||
-		path.startsWith("/e/")
-	);
+/**
+ * Which screen this path is, decided once.
+ *
+ * A chain of `{path === "x" && <X/>}` looks equivalent and is not: the conditions are independent,
+ * so two can be true at once. That is exactly what happened — an unauthenticated visitor to
+ * `/admin` got the sign-in prompt *and* the 404 stacked on top of each other, and the prompt read
+ * "登录之后才能看到审核队列", which announces the existence of the thing the 404 was there to hide.
+ *
+ * Written as early returns so the cases are mutually exclusive by construction.
+ */
+function screen(path: string, viewer: Viewer | null | undefined): JSX.Element {
+	if (path === "/") return <Catalogue />;
+	if (path.startsWith("/e/")) return <Detail id={decodeURIComponent(path.slice(3))} />;
+	if (path === "/submit") return <Submit viewer={viewer ?? null} />;
+	if (path === "/mine") return <Mine viewer={viewer ?? null} />;
+
+	if (isAdminPath(path)) {
+		// Still asking. Render nothing rather than guessing wrong in either direction.
+		if (viewer === undefined) return <div style={{ minHeight: "50vh" }} />;
+		// To anybody else these pages do not exist, and are not worth coming back to.
+		if (!viewer?.isAdmin) return <NotFound />;
+		return path === "/admin" ? <Admin viewer={viewer} /> : <Console viewer={viewer} />;
+	}
+
+	return <NotFound />;
 }
 
 function isAdminPath(path: string): boolean {
 	return path === "/admin" || path === "/console";
+}
+
+function NotFound(): JSX.Element {
+	return (
+		<div className="page detail">
+			<div className="empty">
+				<p className="empty__title">没有这个页面</p>
+				<p>
+					<a href="/" style={{ color: "var(--accent)" }}>
+						回到目录
+					</a>
+				</p>
+			</div>
+		</div>
+	);
 }

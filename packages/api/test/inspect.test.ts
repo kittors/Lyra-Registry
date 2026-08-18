@@ -189,3 +189,35 @@ test("an enormous README is truncated rather than stored whole", () => {
 	const result = inspect([file("skills/a/SKILL.md", "x"), file("README.md", huge)]);
 	assert.equal(result.readme?.length, 64_000);
 });
+
+test("a collection pointed at the wrong level is told where the skills actually are", () => {
+	/*
+	 * `anthropics/skills` submitted without a path: the root holds one `template/SKILL.md` while
+	 * nineteen real skills sit under `skills/`. The count of 1 is correct and the entry is useless,
+	 * and without this the author has no way to know a field was missing.
+	 */
+	const repo = [
+		file("template/SKILL.md", "x"),
+		file("skills/docx/SKILL.md", "x"),
+		file("skills/xlsx/SKILL.md", "x"),
+		file("skills/pdf/SKILL.md", "x"),
+	];
+	const result = inspect(repo, "skill");
+	assert.equal(result.skillCount, 1, "still counts one level, same as the app loads");
+	assert.ok(
+		result.warnings.some((w) => w.includes("skills/") && w.includes("3")),
+		`expected a hint naming skills/, got ${JSON.stringify(result.warnings)}`,
+	);
+});
+
+test("a collection with nothing at this level says where to look instead of just refusing", () => {
+	const repo = [file("collection/a/SKILL.md", "x"), file("collection/b/SKILL.md", "x")];
+	assert.throws(() => inspect(repo, "skill"), /collection\/ 下面有 2 个/);
+});
+
+test("no suggestion when this level is already the best one", () => {
+	const flat = [file("a/SKILL.md", "x"), file("b/SKILL.md", "x"), file("nested/deep/SKILL.md", "x")];
+	const result = inspect(flat, "skill");
+	assert.equal(result.skillCount, 2);
+	assert.deepEqual(result.warnings, [], "a hint that does not improve anything is noise");
+});

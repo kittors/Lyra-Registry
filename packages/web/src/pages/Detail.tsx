@@ -12,8 +12,30 @@ import { useEffect, useState, type JSX } from "react";
 import { CLIENT_LABEL, CLIENT_SKILL_PATH, type EntryDetail } from "@lyra/registry-shared";
 
 import { api } from "../api.ts";
-import { Markdown } from "../markdown.tsx";
+import { Markdown, type Base } from "../markdown.tsx";
 import { formatDate, formatSize, Icon, KIND_LABEL, KindIcon } from "../components/bits.tsx";
+
+/**
+ * Where this entry's README should resolve its relative links to.
+ *
+ * `HEAD` rather than the built commit: a README links to files as they are now, and pinning it to
+ * the commit we happened to build would send people to a stale copy of a document meant to be
+ * current.
+ *
+ * `dir` comes from the build rather than from the entry's `path`. A bundle with no README of its
+ * own gets the repository's, whose links are relative to the *root* — using the sub-path for both
+ * turned every link in Waza's README into `/skills/skills/…`.
+ */
+function readmeBase(repository: string, dir?: string): Base | undefined {
+	const match = /^https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/i.exec(repository);
+	if (!match) return undefined;
+	const [, owner, repo] = match;
+	const prefix = dir ? `/${dir.replace(/^\/|\/$/g, "")}` : "";
+	return {
+		blob: `https://github.com/${owner}/${repo}/blob/HEAD${prefix}`,
+		raw: `https://raw.githubusercontent.com/${owner}/${repo}/HEAD${prefix}`,
+	};
+}
 
 export function Detail({ id }: { id: string }): JSX.Element {
 	const [entry, setEntry] = useState<EntryDetail | null>(null);
@@ -53,6 +75,8 @@ export function Detail({ id }: { id: string }): JSX.Element {
 	}
 
 	const current = entry.versions.find((version) => version.version === entry.version) ?? entry.versions[0];
+	// The platform says where the README came from; guessing it from `path` produced /skills/skills/.
+	const base = readmeBase(entry.repository, entry.readmeBase);
 
 	return (
 		<div className="page detail">
@@ -84,7 +108,7 @@ export function Detail({ id }: { id: string }): JSX.Element {
 			<div className="detail__body">
 				<main>
 					{entry.readme ? (
-						<Markdown source={entry.readme} />
+						<Markdown source={entry.readme} base={base} />
 					) : (
 						<div className="empty" style={{ padding: "40px 0", textAlign: "left" }}>
 							<p className="empty__title">这个条目没有 README</p>

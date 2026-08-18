@@ -102,7 +102,7 @@ export function Mine({ viewer }: { viewer: Viewer | null }): JSX.Element {
 	);
 }
 
-export function Admin({ viewer }: { viewer: Viewer | null }): JSX.Element {
+export function Admin({ viewer }: { viewer: Viewer | null }): JSX.Element | null {
 	const [items, setItems] = useState<EntrySummary[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState<string | null>(null);
@@ -118,17 +118,9 @@ export function Admin({ viewer }: { viewer: Viewer | null }): JSX.Element {
 		if (viewer?.isAdmin) load();
 	}, [viewer, load]);
 
-	if (!viewer) return <SignInPrompt what="审核队列" />;
-	if (!viewer.isAdmin) {
-		return (
-			<div className="page detail">
-				<div className="empty">
-					<p className="empty__title">没有权限</p>
-					<p>这个页面只有管理员能看。</p>
-				</div>
-			</div>
-		);
-	}
+	// Unreachable while signed out or non-admin: `screen()` answers those with the 404 instead, so
+	// that neither the page nor its purpose is ever named to somebody who cannot use it.
+	if (!viewer?.isAdmin) return null;
 
 	async function review(id: string, action: "approve" | "reject"): Promise<void> {
 		/*
